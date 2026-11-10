@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.*;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 

@@ -9,9 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.TimeUnit;
+
 @Service
 @Slf4j
 public class BillingServiceGrpcClient {
+
+    private static final long RPC_TIMEOUT_SECONDS = 10;
 
     private final BillingServiceGrpc.BillingServiceBlockingStub blockingStub;
 
@@ -23,7 +27,8 @@ public class BillingServiceGrpcClient {
                 .forAddress(serverAddress,serverPort)
                 .usePlaintext()
                 .build();
-        blockingStub = BillingServiceGrpc.newBlockingStub(channel);
+        blockingStub = BillingServiceGrpc.newBlockingStub(channel)
+                .withWaitForReady();
     }
 
     public BillingResponse createBillingAccount(String patientId,
@@ -35,7 +40,9 @@ public class BillingServiceGrpcClient {
                 .setName(name)
                 .setEmail(email)
                 .build();
-        BillingResponse response=blockingStub.createBillingAccount(request);
+        BillingResponse response=blockingStub
+                .withDeadlineAfter(RPC_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .createBillingAccount(request);
         log.info("Received response from billing service via GRPC: {}",response);
         return response;
     }

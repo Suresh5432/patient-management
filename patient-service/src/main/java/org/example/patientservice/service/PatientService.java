@@ -5,6 +5,8 @@ import org.example.patientservice.dto.PatientRequest;
 import org.example.patientservice.entity.Patient;
 import org.example.patientservice.exception.EmailAlreadyExistsException;
 import org.example.patientservice.exception.PatientNotFoundException;
+import org.example.patientservice.grpc.BillingServiceGrpcClient;
+import org.example.patientservice.kafka.KafkaProducer;
 import org.example.patientservice.repo.PatientRepository;
 import org.example.patientservice.dto.PatientResponse;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,9 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
 
+    private final BillingServiceGrpcClient billingServiceGrpcClient;
+
+    private final KafkaProducer kafkaProducer;
 
     public List<PatientResponse> getPatients(){
         return patientRepository.findAll().stream().map(patient->
@@ -45,6 +50,12 @@ public class PatientService {
                 .registrationDate(LocalDate.parse(patientRequest.getRegistrationDate()))
                 .build();
         patientRepository.save(patient);
+        billingServiceGrpcClient.createBillingAccount(
+                patient.getId().toString(),
+                patient.getName(),
+                patient.getEmail());
+
+        kafkaProducer.sendMessage(patient);
         return PatientResponse.builder()
                 .id(patient.getId().toString())
                 .name(patient.getName())
